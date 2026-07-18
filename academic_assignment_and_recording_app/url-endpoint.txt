@@ -1,0 +1,3 @@
+http://academic_web_app:8080/
+http://academic_web_app:8080/Home/LogInAgain
+http://academic_web_app:8080/Home/TestVulnerability?id=1

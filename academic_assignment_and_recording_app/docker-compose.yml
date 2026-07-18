@@ -1,0 +1,39 @@
+﻿name: academic_web_app_infrastructure
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: academic_web_app:latest
+    container_name: academic_web_app
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=temporary_29;Username=postgres;Password=12345;
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - db
+    networks:
+      - academic_web_app_network
+
+  db:
+    image: postgres:15-alpine
+    container_name: academic_postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=temporary_29
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=12345
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - academic_web_app_network
+
+volumes:
+  pgdata:
+
+networks:
+  academic_web_app_network:
+    name: academic_web_app_network

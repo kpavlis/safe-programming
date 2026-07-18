@@ -1,0 +1,157 @@
+﻿@model academic_assignment_and_recording_app.ViewModels.TaskListAndSubjectViewModel
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Student";
+}
+
+<body style="background-image: url('https://images.pexels.com/photos/29586677/pexels-photo-29586677/free-photo-of-elegant-flow-of-soft-blue-fabric-in-abstract-form.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'); background-attachment: fixed; background-size: cover;">
+
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light box-shadow mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand disabled" style="cursor: default; color: black;"><strong>Ηλεκτρονική Τάξη</strong></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+            aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" asp-controller="Student" asp-action="Index">
+                            Μενού Μαθημάτων
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" asp-controller="Student" asp-action="ViewStudentSubject" asp-route-id="@Model.subject.CourseId">
+                            Προβολή Εργασιών
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" style="color: red;" asp-controller="Home" asp-action="SignOut">
+                            <strong>Αποσύνδεση</strong>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <h5 class="text-center" style="margin-top: 10%">Λίστα Ασκήσεων</h5>
+
+        @if (Model.has_access)
+        {
+            <table class="table mx-auto w-75" style="background: rgba(255,255,255,0.7); border-radius: 15px; backdrop-filter: blur(10px);">
+                <thead>
+                    <tr>
+                        <th>
+                            Τίτλος
+                        </th>
+                        <th>
+                            Ατομική/Ομαδική Άσκηση
+                        </th>
+                        <th>
+                            Σχόλια
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.tasks)
+                    {
+                        @if (string.IsNullOrEmpty(item.Comments) && item.StudentId == null)
+                        {
+                            <tr>
+                                <td>
+                                    @item.TaskTitle
+                                </td>
+                                <td>
+                                    @if ((bool)item.GroupType)
+                                    {
+                                        <p>Ομαδική Άσκηση</p>
+                                    }
+                                    else
+                                    {
+                                        <p>Ατομική Άσκηση</p>
+                                    }
+                                </td>
+                                @if (ViewBag.task_is_available)
+                                {
+                                    <form method="post" asp-controller="Student" asp-action="SaveTask">
+                                        <td>
+                                            <div class="mb-3" style="padding: 20px;">
+                                                <input class="form-control" name="comments" type="text" maxlength="45">
+                                            </div>
+                                        </td>
+
+                                        <td style="vertical-align: middle;">
+                                            <input class="form-control" name="taskId" type="hidden" value="@item.TaskId">
+                                            <input class="form-control" name="subjectId" type="hidden" value="@item.SubjectId">
+
+                                            <div class="d-flex justify-content-center">
+                                                <button type="submit" class="btn btn-primary">Υποβολή Αίτησης</button>
+                                            </div>
+
+                                        </td>
+                                    </form>
+                                }
+                            </tr>
+
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <h5 class="text-center">Έχετε ήδη επιλέξει μια άσκηση</h5>
+
+
+            <table class="table mx-auto w-75" style="background: rgba(255,255,255,0.7); border-radius: 15px; backdrop-filter: blur(10px);">
+                <thead>
+                    <tr>
+                        <th>
+                            Τίτλος άσκησης
+                        </th>
+                        <th>
+                            Άσκηση Άτομική/Ομαδική
+                        </th>
+                        <th>
+                            Σχόλια
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            @ViewBag.studentTask.TaskTitle
+                        </td>
+                        <td>
+                            @if (ViewBag.studentTask.GroupType)
+                            {
+                                <p>Ομαδική</p>
+                            }
+                            else
+                            {
+                                <p>Ατομική</p>
+                            }
+                        </td>
+                        <td>
+                            @ViewBag.studentTask.Comments
+                        </td>
+                        <td>
+                            @if (ViewBag.task_is_available)
+                            {
+                                <form method="post" asp-controller="Student" asp-action="DeleteTask">
+                                    <input type="hidden" name="taskId" value="@ViewBag.studentTask.TaskId" readonly />
+                                    <input type="hidden" name="subjectId" value="@Model.subject.SubjectId" readonly />
+                                    <div class="mb-3 d-flex justify-content-center">
+                                    <button type="submit" class="btn btn-primary" style="background-color: red;border-color:red;">Αναίρεση Υποβληθείσας Αίτησης</button>
+                                    </div>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        }
+</body>

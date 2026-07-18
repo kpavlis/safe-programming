@@ -1,0 +1,143 @@
+﻿@model academic_assignment_and_recording_app.ViewModels.TaskList_UserListAndSubjectViewModel
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Teacher";
+}
+
+
+<body style="background-image: url('https://images.pexels.com/photos/29586677/pexels-photo-29586677/free-photo-of-elegant-flow-of-soft-blue-fabric-in-abstract-form.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'); background-attachment: fixed; background-size: cover;">
+
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light box-shadow mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand disabled" style="cursor: default; color: black;"><strong>Ηλεκτρονική Τάξη</strong></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+            aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" asp-controller="Teacher" asp-action="Index">
+                            Μενού Μαθημάτων Καθηγητή
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" asp-controller="Teacher" asp-action="ViewTeacherSubject" asp-route-id="@Model.subject.CourseId">
+                            Μενού Εργασιών
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" asp-controller="Teacher" asp-action="ViewOtherCourses">
+                            Μενού άλλων Μαθημάτων
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" style="color: red;" asp-controller="Home" asp-action="SignOut">
+                            <strong>Αποσύνδεση</strong>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+
+    <h5 class="text-center" style="margin-top: 10%">Λίστα Ασκήσεων</h5>
+
+    <table class="table mx-auto w-75" style="background: rgba(255,255,255,0.7); border-radius: 15px; backdrop-filter: blur(10px);">
+        <thead>
+            <tr>
+                <th>
+                    Τίτλος
+                </th>
+                <th>
+                    Άσκηση Ατομική/Ομαδική
+                </th>
+                <th>
+                    Σχόλια
+                </th>
+                <th>
+                    Φοιτητής
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.tasks)
+            {
+                <tr>
+                    <td>
+                        @item.TaskTitle
+
+                    </td>
+                    <td>
+                        @if ((bool)item.GroupType)
+                        {
+                            <p>Ομαδική Άσκηση</p>
+                        }
+                        else
+                        {
+                            <p>Ατομική Άσκηση</p>
+                        }
+                    </td>
+                    <td>
+                        @if (item.Comments != null)
+                        {
+                            @item.Comments
+                        }
+                        else
+                        {
+                            <p>Κενό</p>
+                        }
+
+                    </td>
+                    <td>
+                        @if (item.StudentId != null)
+                        {
+                            var user_student = Model.users.FirstOrDefault(u => u.UserId == item.StudentId);
+                            @if (user_student != null)
+                            {
+                                <p>@user_student.Name</p>
+                                <p>@user_student.Surname</p>
+                                <p>@user_student.Email</p>
+                            }
+                        }
+                        else
+                        {
+                            <p>Κενό</p>
+                        }
+
+                    </td>
+                    <td style="vertical-align: middle;">
+                        <form method="post" asp-controller="Teacher" asp-action="DeleteTask">
+                            <input type="hidden" name="taskId" value="@item.TaskId" readonly />
+                            <input type="hidden" name="subjectId" value="@Model.subject.SubjectId" readonly />
+
+                            @if (Model.has_access && item.StudentId==null)
+                            {
+                                <div class="d-flex justify-content-center">
+                                    <button type="submit" class="btn btn-primary" style="background-color: red;border-color:red;">Διαγραφή Άσκησης</button>
+                                </div>
+                            }
+
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Model.has_access)
+    {
+        <div class="d-flex justify-content-center">
+        <a asp-controller="Teacher" asp-action="CreateTask" asp-route-id="@Model.subject.SubjectId" class="btn btn-primary">
+            Δημιουργία Άσκησης
+        </a>
+        </div>
+    }
+
+
+
+</body>
+

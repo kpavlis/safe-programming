@@ -1,0 +1,21 @@
+#!/bin/sh
+
+echo "=== [DevSecOps] Εκκίνηση Στατικού Ελέγχου Κώδικα με Semgrep (Pre-push) ==="
+
+# Απενεργοποιούμε το Path Conversion των Windows για το Docker
+PWD_WIN=$(pwd -W 2>/dev/null || pwd)
+
+MSYS_NO_PATHCONV=1 docker run --rm -v "${PWD_WIN}:/src" returntocorp/semgrep semgrep scan --config=p/csharp --error
+
+RESULT=$?
+
+if [ $RESULT -ne 0 ]; then
+    echo ""
+    echo "❌ Το Semgrep εντόπισε κρίσιμες ευπάθειες στον κώδικα (π.χ. SQL Injection)!"
+    echo "⚠️ Το push ακυρώθηκε. Παρακαλώ διορθώστε τα κενά ασφαλείας."
+    exit 1
+else
+    echo ""
+    echo "✅ Ο κώδικας πέρασε τον έλεγχο Semgrep. Το push επιτρέπεται!"
+    exit 0
+fi

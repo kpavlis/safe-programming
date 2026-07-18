@@ -1,0 +1,138 @@
+﻿@model academic_assignment_and_recording_app.ViewModels.TeachersAndStudentsViewModel
+
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<body style="background-image: url('https://images.pexels.com/photos/29586677/pexels-photo-29586677/free-photo-of-elegant-flow-of-soft-blue-fabric-in-abstract-form.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'); background-attachment: fixed; background-size: cover;">
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light box-shadow mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand disabled" style="cursor: default; color: black;"><strong>Ηλεκτρονική Τάξη</strong></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collpase navbar-collapse justify-content-end" id="navbarSupportedContent">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link mx-3" style="color: red;" asp-controller="Home" asp-action="SignOut">
+                            <strong>Αποσύνδεση</strong>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <h3 class="text-center" style="margin-top: 10%">Καλώς ορίσατε @ViewBag.UserName @ViewBag.UserSurname</h3>
+
+    <table class="table mx-auto w-75" style="background: rgba(255,255,255,0.7); border-radius: 15px; backdrop-filter: blur(10px);">
+        <thead>
+            <tr>
+                <th class="text-center">
+                    Όνομα
+                </th>
+                <th class="text-center">
+                    Επώνυμο
+                </th>
+                <th class="text-center">
+                    Email
+                </th>
+                <th class="text-center">
+                    Ακαδημαϊκός Ρόλος
+                </th>
+                <th class="text-center">
+                    Αποκλήστηκε
+                </th>
+                <th class="text-center">
+                    Ενέργεια
+                </th>
+
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Users)
+            {
+                <tr>
+
+                    <td class="text-center">
+                        @item.Name
+                    </td>
+                    <td class="text-center">@item.Surname</td>
+                    <td class="text-center">@item.Email</td>
+                    <td class="text-center">@item.AcademicRole</td>
+                    <td>
+                        @if (item.AcademicRole.Equals("teacher"))
+                        {
+                            @if (item.Teacher.Banned == true)
+                            {
+                                <p class="text-center">Ναι</p>
+                            }
+                            else{
+                                <p class="text-center">Όχι</p>
+                            }
+                        }
+                        
+
+                        @if (item.AcademicRole.Equals("student"))
+                        {
+                            @if (item.Student.Banned == true)
+                            {
+                                <p class="text-center">Ναι</p>
+                            }
+                            else
+                            {
+                                <p class="text-center">Όχι</p>
+                            }
+                        }
+
+                    </td>
+
+                    <td>
+                        <form method="post" asp-controller="Admin" asp-action="BanMethod">
+                            <input type="hidden" name="id" value="@item.UserId" />
+                            <input type="hidden" name="role" value="@item.AcademicRole" />
+                        @if (item.AcademicRole.Equals("teacher"))
+                        {
+                            @if (item.Teacher.Banned == false)
+                            {
+                                <div class="d-flex justify-content-center">
+                                        <button type="submit" class="btn btn-primary" style="background-color: red;border-color:red;">Αποκλεισμός</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex justify-content-center">
+                                        <button type="submit" class="btn btn-primary" style="background-color: red;border-color:red;">Αφαίρεση Αποκλεισμού</button>
+                                </div>
+                            }
+                        }
+
+                        @if (item.AcademicRole.Equals("student"))
+                        {
+                            @if (item.Student.Banned == false)
+                            {
+                                <div class="d-flex justify-content-center">
+                                        <button type="submit" class="btn btn-primary" style="background-color: red;border-color:red;">Αποκλεισμός</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex justify-content-center">
+                                        <button type="submit" class="btn btn-primary" style="background-color: red;border-color:red;">Αφαίρεση Αποκλεισμού</button>
+                                </div>
+                            }
+                        }
+                        </form>
+                    </td>
+
+
+                </tr>
+            }
+        </tbody>
+    </table>
+
+</body>

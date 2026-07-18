@@ -1,0 +1,148 @@
+pipeline {
+    agent any
+
+    environment {
+        JENKINS_VOLUME = 'jenkins_infrastructure_jenkins_data'
+    }
+
+    stages {
+        stage('1. Checkout Code') {
+            steps {
+                echo '=== Λήψη Κώδικα από το Repository ==='
+                checkout scm
+            }
+        }
+
+        stage('2. Security Scan - Secrets (TruffleHog)') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set -o pipefail
+                        echo '=== Εκκίνηση Ελέγχου για Secrets με TruffleHog ===' | tee trufflehog-report.txt
+                        docker run --rm -v ${JENKINS_VOLUME}:/src trufflesecurity/trufflehog:latest filesystem /src/workspace/${JOB_NAME} --fail 2>&1 | tee -a trufflehog-report.txt
+                    '''
+                }
+            }
+        }
+
+        stage('3. Security Scan - SAST (Semgrep)') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set -o pipefail
+                        echo '=== Εκκίνηση Στατικού Ελέγχου Κώδικα με Semgrep ===' | tee semgrep-report.txt
+                        docker run --rm -u root -v ${JENKINS_VOLUME}:/src -w /src/workspace/${JOB_NAME} returntocorp/semgrep semgrep scan --config=p/csharp --error 2>&1 | tee -a semgrep-report.txt
+                    '''
+                }
+            }
+        }
+
+        stage('4. Security Scan - Linting (C# .NET)') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set -o pipefail
+                        echo '=== Έλεγχος Ποιότητας και Μορφοποίησης Κώδικα .NET ===' | tee dotnet-lint-report.txt
+                        docker run --rm -u root \
+                        -v ${JENKINS_VOLUME}:/src \
+                        -w /src/workspace/${JOB_NAME} \
+                        mcr.microsoft.com/dotnet/sdk:latest \
+                        dotnet format --verify-no-changes 2>&1 | tee -a dotnet-lint-report.txt
+                    '''
+                }
+            }
+        }
+
+        stage('4.5 Build & Deploy Application') {
+            steps {
+                sh '''
+                    COMPOSE_FILE=$(find . -name "docker-compose.yml" | head -n 1)
+                    docker compose -f "$COMPOSE_FILE" up --build -d
+
+                    sleep 10
+
+                    BACKUP_FILE=$(find . -name "Project_db.backup" | head -n 1)
+
+                    if [ -n "$BACKUP_FILE" ]; then
+                        
+                        docker exec -i academic_postgres_db pg_restore -U postgres -d temporary_29 --clean --if-exists < "$BACKUP_FILE"
+                        
+                    fi
+                '''
+            }
+        }
+
+        stage('5. Security Scan - Docker Image and Vulnerabilities (Trivy)') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set -o pipefail
+                        echo '=== Έλεγχος Ευπαθειών Docker Image με Trivy ===' | tee trivy-report.txt
+                        docker save -o ${JOB_NAME}.tar academic_web_app:latest
+                        docker run --rm -u root \
+                        -v ${JENKINS_VOLUME}:/src \
+                        -w /src/workspace/${JOB_NAME} \
+                        aquasec/trivy:latest image --severity HIGH,CRITICAL --exit-code 1 --input ${JOB_NAME}.tar 2>&1 | tee -a trivy-report.txt
+                        rm -f ${JOB_NAME}.tar
+                    '''
+                }
+            }
+        }
+
+        stage('6. Security Scan - Network, Port & Service Vulnerabilities (Nmap)') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set -o pipefail
+                        echo '=== Έλεγχος Δικτύου, Θυρών και Υπηρεσιών με Nmap ===' | tee nmap-report.txt
+                        docker run --rm --network=academic_web_app_network \
+                        instrumentisto/nmap \
+                        -sV --script vuln academic_web_app 2>&1 | tee -a nmap-report.txt
+                    '''
+                }
+            }
+        }
+
+        stage('7. Security Scan - SQL Injection (SQLMap)'){
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        set -o pipefail
+                        echo '=== Έλεγχος Ευπαθειών SQL Injection με SQLMap ===' | tee sqlmap-report.txt
+
+                        MY_PATH=\$(find . -name "url-endpoint.txt" | head -n 1)
+                        if [ -z "\$MY_PATH" ]; then
+                            echo "ERROR: url-endpoint.txt not found!"
+                            exit 1
+                        fi
+                    
+                        URL_DATA=\$(cat "\$MY_PATH")
+
+                        docker run --rm --network=academic_web_app_network --entrypoint sh secsi/sqlmap -c "
+                            echo '\$URL_DATA' > /tmp/urls.txt
+                            python sqlmap.py -m /tmp/urls.txt --forms --batch --banner --level=3 --risk=2
+                        " 2>&1 | tee -a sqlmap-report.txt
+                    '''
+                }
+            }
+        }
+    }
+
+        post {
+            always {
+                
+                echo '=== Συλλογή Αναφορών ==='
+                sh 'cat *-report.txt > FINAL-SECURITY-REPORT.txt || true'
+                archiveArtifacts artifacts: 'FINAL-SECURITY-REPORT.txt', allowEmptyArchive: true
+
+                echo '=== Κλείσιμο και Διαγραφή του Test Environment ==='
+                sh '''
+                    COMPOSE_FILE=$(find . -name "docker-compose.yml" | head -n 1)
+                    docker compose -f "$COMPOSE_FILE" down --remove-orphans -v
+
+                    docker image prune -f
+                '''
+            }
+        }
+
+}
