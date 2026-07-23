@@ -1,22 +1,17 @@
 #!/bin/sh
 
-echo "=== [DevSecOps] Εκκίνηση Στατικού Ελέγχου με TruffleHog ==="
+echo "===== Εκκίνηση Στατικού Ελέγχου με TruffleHog ====="
 
-# Χρησιμοποιούμε το δυναμικό path αλλά απενεργοποιούμε το Path Conversion των Windows
 PWD_WIN=$(pwd -W 2>/dev/null || pwd)
 
-# Το MSYS_NO_PATHCONV=1 αναγκάζει το Git των Windows να αφήσει το "/pwd" όπως είναι!
 MSYS_NO_PATHCONV=1 docker run --rm -v "${PWD_WIN}:/pwd" trufflesecurity/trufflehog:latest filesystem /pwd --fail
 
 RESULT=$?
 
 if [ $RESULT -ne 0 ]; then
-    echo ""
-    echo "❌ [ΑΣΦΑΛΕΙΑ]: Βρέθηκαν hardcoded credentials ή secrets στον κώδικα!"
-    echo "⚠️ Το commit ακυρώθηκε. Παρακαλώ αφαιρέστε τα secrets για να συνεχίσετε."
+    echo -e "\nSecrets detected!\nCommit blocked. Please remove them to continue."
     exit 1
 else
-    echo ""
-    echo "✅ [ΑΣΦΑΛΕΙΑ]: Δεν βρέθηκαν secrets. Το commit επιτρέπεται!"
+    echo -e "\nNo secrets found. Commit allowed!"
     exit 0
 fi
